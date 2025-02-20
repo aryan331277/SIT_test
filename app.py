@@ -87,14 +87,14 @@ def main():
         with value_col:
             value_column = st.selectbox("Select Value Column", options=cols)
 
+        # Data validation and conversion
+        df = df.dropna(subset=[date_column, value_column])  # Remove rows with NaN
+        df = df[df[date_column].str.match(r'\d{4}-\d{2}-\d{2}')]  # Keep only well-formatted dates
+
         # Convert date column
         try:
-            # Check if the date is in nanoseconds and convert if necessary
-            if df[date_column].dtype == 'int64':  # If dates are stored as integers (nanoseconds)
-                df[date_column] = df[date_column] / 1e9  # Convert nanoseconds to seconds
-                df[date_column] = pd.to_datetime(df[date_column], unit='s')
-            else:
-                df[date_column] = pd.to_datetime(df[date_column])
+            df[date_column] = pd.to_datetime(df[date_column], format='%Y-%m-%d', errors='coerce')
+            df = df.dropna(subset=[date_column])  # Drop rows with invalid dates
         except Exception as e:
             st.error(f"Error converting date column to datetime: {str(e)}")
             return
@@ -121,6 +121,7 @@ def main():
                         # Prepare data for Prophet
                         prophet_df = df[[date_column, value_column]]
                         prophet_df.columns = ['ds', 'y']
+                        prophet_df['ds'] = prophet_df['ds'].dt.strftime('%Y-%m-%d')  # Ensure date format
 
                         # Model training
                         model = Prophet()
