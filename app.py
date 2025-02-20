@@ -49,7 +49,7 @@ def main():
                     pd.DataFrame(columns=["date", "value"]),
                     num_rows="dynamic",
                     column_config={
-                        "date": st.column_config.DateColumn("Date", format="YYYY-MM-DD"),
+                        "date": st.column_config.DateColumn("Date", format="DD-MM-YYYY"),
                         "value": st.column_config.NumberColumn("Value")
                     },
                     height=300
@@ -76,7 +76,7 @@ def main():
 
         # Convert to datetime, handling potential errors
         try:
-            df[date_column] = pd.to_datetime(df[date_column], format='%Y-%m-%d', errors='coerce')
+            df[date_column] = pd.to_datetime(df[date_column], format='%d-%m-%Y', errors='coerce')
             df = df.dropna(subset=[date_column])
         except Exception as e:
             st.error(f"Error converting date column to datetime: {str(e)}")
