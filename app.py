@@ -92,6 +92,18 @@ def main():
             st.error(f"Error converting date column to datetime: {str(e)}")
             return
 
+        # Convert value column to numeric if necessary
+        try:
+            df[value_column] = pd.to_numeric(df[value_column], errors='coerce')
+        except Exception as e:
+            st.error(f"Error converting value column to numeric: {str(e)}")
+            return
+
+        # Check if the column is numeric
+        if not np.issubdtype(df[value_column].dtype, np.number):
+            st.error(f"Selected value column '{value_column}' is not numeric.")
+            return
+
         # Time series visualization
         st.subheader("Time Series Analysis")
         fig = go.Figure()
@@ -164,8 +176,8 @@ def main():
                 periods = st.number_input("Forecast Periods", 1, 365, 30)
             with col2:
                 freq = st.selectbox("Frequency", 
-                              ["D", "W", "M", "Q", "Y"], 
-                              index=0, help="Choose the frequency of your forecast.")
+                                  ["D", "W", "M", "Q", "Y"], 
+                                  index=0, help="Choose the frequency of your forecast.")
             with col3:
                 confidence = st.slider("Confidence Interval", 70, 99, 95, help="Set the confidence level for your forecast.")
             
