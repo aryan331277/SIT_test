@@ -89,7 +89,12 @@ def main():
 
         # Convert date column
         try:
-            df[date_column] = pd.to_datetime(df[date_column])
+            # Check if the date is in nanoseconds and convert if necessary
+            if df[date_column].dtype == 'int64':  # If dates are stored as integers (nanoseconds)
+                df[date_column] = df[date_column] / 1e9  # Convert nanoseconds to seconds
+                df[date_column] = pd.to_datetime(df[date_column], unit='s')
+            else:
+                df[date_column] = pd.to_datetime(df[date_column])
         except Exception as e:
             st.error(f"Error converting date column to datetime: {str(e)}")
             return
