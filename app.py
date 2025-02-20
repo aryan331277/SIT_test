@@ -7,7 +7,6 @@ from prophet.plot import plot_plotly, plot_components_plotly
 import plotly.graph_objs as go
 from datetime import datetime
 import warnings
-warnings.filterwarnings('ignore')
 import plotly.express as px
 
 # App configuration
