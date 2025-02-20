@@ -30,7 +30,8 @@ st.markdown("""
 def prepare_data(df, date_column, value_column):
     """Prepare data for Prophet model."""
     try:
-        df[date_column] = pd.to_datetime(df[date_column], errors='coerce')
+        # Convert date to datetime, assuming format 'YYYY-MM-DD'
+        df[date_column] = pd.to_datetime(df[date_column], format='%Y-%m-%d', errors='coerce')
         df = df.dropna(subset=[date_column])  # Remove rows with invalid dates
         df[value_column] = pd.to_numeric(df[value_column], errors='coerce')
         return df.sort_values(by=date_column)
@@ -44,14 +45,34 @@ def plot_time_series(df, date_column, value_column):
     st.plotly_chart(fig, use_container_width=True)
 
 def forecast_data(df, date_column, value_column, days_to_forecast):
-    """Perform forecasting using Prophet."""
+    """Perform forecasting using Prophet with enhanced error handling."""
     prophet_df = df[[date_column, value_column]].rename(columns={date_column: 'ds', value_column: 'y'})
     
+    # Display data before processing to debug
+    st.subheader("Data before processing:")
+    st.write(prophet_df.head())
+    
+    # Remove any rows where 'y' is NaN
+    prophet_df = prophet_df.dropna(subset=['y'])
+    
+    # Ensure 'ds' is in datetime format
+    prophet_df['ds'] = pd.to_datetime(prophet_df['ds'], format='%Y-%m-%d', errors='coerce')
+    prophet_df = prophet_df.dropna(subset=['ds'])  # Remove any rows where date conversion failed
+
+    if prophet_df.empty:
+        st.error("After cleaning, the dataset is empty. Please check your data.")
+        return None, None
+
     model = Prophet()
-    with st.spinner("Generating forecast..."):
-        model.fit(prophet_df)
-        future = model.make_future_dataframe(periods=days_to_forecast)
-        forecast = model.predict(future)
+    try:
+        with st.spinner("Generating forecast..."):
+            st.write("Data after cleaning:", prophet_df.head())  # Another debug point
+            model.fit(prophet_df)
+            future = model.make_future_dataframe(periods=days_to_forecast)
+            forecast = model.predict(future)
+    except ValueError as e:
+        st.error(f"Error in Prophet model fitting: {str(e)}")
+        return None, None
     
     return model, forecast
 
@@ -113,13 +134,13 @@ def main():
         cols = df.columns.tolist()
         date_col, value_col = st.columns(2)
         with date_col:
-            date_column = st.selectbox("Select Date Column", options=cols)
+            date_column = st.selectbox("Select Date Column", options=cols, key='date_column')
         with value_col:
-            value_column = st.selectbox("Select Value Column", options=cols)
+            value_column = st.selectbox("Select Value Column", options=cols, key='value_column')
 
         # Prepare data
         df = prepare_data(df, date_column, value_column)
-        if df is None:
+        if df is None or df.empty:
             return
 
         # Time series visualization
@@ -133,14 +154,15 @@ def main():
             if st.form_submit_button("Predict"):
                 model, forecast = forecast_data(df, date_column, value_column, days_to_forecast)
 
-                # Show last few forecast results
-                st.subheader("Forecast Results")
-                st.dataframe(forecast[['ds', 'yhat']].tail(), use_container_width=True)
+                if model is not None and forecast is not None:
+                    # Show last few forecast results
+                    st.subheader("Forecast Results")
+                    st.dataframe(forecast[['ds', 'yhat']].tail(), use_container_width=True)
 
-                # Plot forecast
-                fig_forecast = plot_plotly(model, forecast)
-                fig_forecast.update_layout(title="Forecast vs Historical Data")
-                st.plotly_chart(fig_forecast, use_container_width=True)
+                    # Plot forecast
+                    fig_forecast = plot_plotly(model, forecast)
+                    fig_forecast.update_layout(title="Forecast vs Historical Data")
+                    st.plotly_chart(fig_forecast, use_container_width=True)
 
 if __name__ == "__main__":
     main()
