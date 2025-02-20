@@ -43,7 +43,8 @@ def main():
                                            type=["csv"], help="Select your CSV file here.")
             if uploaded_file:
                 try:
-                    df = pd.read_csv(uploaded_file)
+                    # Force reading the date column as string if possible
+                    df = pd.read_csv(uploaded_file, dtype={date_column: str})
                     st.session_state.df = df
                     st.success("Data uploaded successfully!")
                 except Exception as e:
@@ -68,6 +69,8 @@ def main():
                     height=300
                 )
                 if st.form_submit_button("Save Manual Data"):
+                    # Convert date column to string to ensure consistency
+                    manual_data['date'] = manual_data['date'].astype(str)
                     st.session_state.df = manual_data
                     st.success("Manual data saved!")
 
@@ -86,6 +89,9 @@ def main():
             date_column = st.selectbox("Select Date Column", options=cols)
         with value_col:
             value_column = st.selectbox("Select Value Column", options=cols)
+
+        # Ensure date column is string type
+        df[date_column] = df[date_column].astype(str)
 
         # Data validation and conversion
         df = df.dropna(subset=[date_column, value_column])  # Remove rows with NaN
