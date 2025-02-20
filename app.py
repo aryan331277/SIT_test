@@ -43,9 +43,12 @@ def main():
             uploaded_file = st.file_uploader("Upload your time series CSV file", 
                                            type=["csv"], help="Select your CSV file here.")
             if uploaded_file:
-                df = pd.read_csv(uploaded_file)
-                st.session_state.df = df
-                st.success("Data uploaded successfully!")
+                try:
+                    df = pd.read_csv(uploaded_file)
+                    st.session_state.df = df
+                    st.success("Data uploaded successfully!")
+                except Exception as e:
+                    st.error(f"Error reading CSV file: {str(e)}")
 
         else:
             with st.form("manual_input_form"):
@@ -87,7 +90,11 @@ def main():
 
         # Convert date column
         try:
-            df[date_column] = pd.to_datetime(df[date_column])
+            if df[date_column].dtype == 'int64':  # If dates are stored as integers (nanoseconds)
+                df[date_column] = df[date_column] / 1e9  # Convert nanoseconds to seconds
+                df[date_column] = pd.to_datetime(df[date_column], unit='s')
+            else:
+                df[date_column] = pd.to_datetime(df[date_column])
         except Exception as e:
             st.error(f"Error converting date column to datetime: {str(e)}")
             return
