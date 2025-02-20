@@ -43,8 +43,8 @@ def main():
                                            type=["csv"], help="Select your CSV file here.")
             if uploaded_file:
                 try:
-                    # Force reading the date column as string if possible
-                    df = pd.read_csv(uploaded_file, dtype={date_column: str})
+                    # Read CSV without specifying dtype for now
+                    df = pd.read_csv(uploaded_file)
                     st.session_state.df = df
                     st.success("Data uploaded successfully!")
                 except Exception as e:
