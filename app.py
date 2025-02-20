@@ -17,7 +17,7 @@ st.markdown("""
 <style>
     .main {background-color: #f5f5f5;}
     h1 {color: #2a3f5f;}
-    .st-bw {background-color: #ffffff;}
+    .st-bw {background-color: #f5f5f5;}
     .css-18e3th9 {padding: 2rem 5rem;}
 </style>
 """, unsafe_allow_html=True)
