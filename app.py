@@ -1,15 +1,12 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
 from prophet import Prophet
 from prophet.plot import plot_plotly
 import plotly.express as px
-from datetime import datetime
 import warnings
 
 warnings.filterwarnings('ignore')
 
-# App configuration
 st.set_page_config(page_title="Simple Time Series Forecast", layout="wide")
 
 # Custom CSS styling
@@ -24,7 +21,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Main app function
 def main():
     st.title("📈 Simple Time Series Forecasting")
     st.markdown("""<p style="font-size: 18px; color: #555555;">Upload your time series data or enter manually to generate forecasts.</p>""", unsafe_allow_html=True)
@@ -35,15 +31,12 @@ def main():
 
     # Data input options
     with st.expander("📤 Data Input", expanded=True):
-        input_method = st.radio("Choose data input method:", 
-                              ("Upload CSV", "Manual Input"), horizontal=True)
+        input_method = st.radio("Choose data input method:", ("Upload CSV", "Manual Input"), horizontal=True)
 
         if input_method == "Upload CSV":
-            uploaded_file = st.file_uploader("Upload your time series CSV file", 
-                                           type=["csv"], help="Select your CSV file here.")
+            uploaded_file = st.file_uploader("Upload your time series CSV file", type=["csv"])
             if uploaded_file:
                 try:
-                    # Read CSV without specifying dtype for now
                     df = pd.read_csv(uploaded_file)
                     st.session_state.df = df
                     st.success("Data uploaded successfully!")
@@ -56,21 +49,12 @@ def main():
                     pd.DataFrame(columns=["date", "value"]),
                     num_rows="dynamic",
                     column_config={
-                        "date": st.column_config.DateColumn(
-                            "Date",
-                            help="Select date for observation",
-                            format="YYYY-MM-DD",
-                        ),
-                        "value": st.column_config.NumberColumn(
-                            "Value",
-                            help="Enter numerical value",
-                        )
+                        "date": st.column_config.DateColumn("Date", format="YYYY-MM-DD"),
+                        "value": st.column_config.NumberColumn("Value")
                     },
                     height=300
                 )
                 if st.form_submit_button("Save Manual Data"):
-                    # Convert date column to string to ensure consistency
-                    manual_data['date'] = manual_data['date'].astype(str)
                     st.session_state.df = manual_data
                     st.success("Manual data saved!")
 
@@ -90,24 +74,18 @@ def main():
         with value_col:
             value_column = st.selectbox("Select Value Column", options=cols)
 
-        # Ensure date column is string type
-        df[date_column] = df[date_column].astype(str)
-
-        # Data validation and conversion
-        df = df.dropna(subset=[date_column, value_column])  # Remove rows with NaN
-        df = df[df[date_column].str.match(r'\d{4}-\d{2}-\d{2}')]  # Keep only well-formatted dates
-
-        # Convert date column
+        # Convert to datetime, handling potential errors
         try:
             df[date_column] = pd.to_datetime(df[date_column], format='%Y-%m-%d', errors='coerce')
-            df = df.dropna(subset=[date_column])  # Drop rows with invalid dates
+            df = df.dropna(subset=[date_column])
         except Exception as e:
             st.error(f"Error converting date column to datetime: {str(e)}")
             return
 
-        # Convert value column to numeric if necessary
+        # Convert value column to numeric
         try:
             df[value_column] = pd.to_numeric(df[value_column], errors='coerce')
+            df = df.dropna(subset=[value_column])
         except Exception as e:
             st.error(f"Error converting value column to numeric: {str(e)}")
             return
@@ -125,9 +103,7 @@ def main():
                 with st.spinner("Generating forecast..."):
                     try:
                         # Prepare data for Prophet
-                        prophet_df = df[[date_column, value_column]]
-                        prophet_df.columns = ['ds', 'y']
-                        prophet_df['ds'] = prophet_df['ds'].dt.strftime('%Y-%m-%d')  # Ensure date format
+                        prophet_df = df[[date_column, value_column]].rename(columns={date_column: 'ds', value_column: 'y'})
 
                         # Model training
                         model = Prophet()
